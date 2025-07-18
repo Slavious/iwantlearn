@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Математична RPG</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container py-5">
+        <div class="game-box text-center">
+            <img id="dragon" src="images/dragon-baby.png" alt="Дракон" class="dragon">
+            <h2>🌟 Математична RPG</h2>
+            <div id="levelInfo" class="mb-2"></div>
+            <div class="progress mb-3">
+                <div id="xpBar" class="progress-bar bg-success" role="progressbar" style="width: 0%;">0%</div>
+            </div>
+            <div id="message"></div>
+            <div id="question" class="fs-4 mb-3"></div>
+            <form id="answerForm" class="d-grid gap-2">
+                <input type="number" name="answer" class="form-control" required autofocus>
+                <button type="submit" class="btn btn-primary">Відповісти</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function updateGame(data) {
+            document.getElementById('dragon').src = 'images/' + data.avatar;
+            document.getElementById('levelInfo').innerHTML = `<strong>Рівень:</strong> ${data.level} | <strong>XP:</strong> ${data.xp}/50`;
+            document.getElementById('xpBar').style.width = `${data.xp_percent}%`;
+            document.getElementById('xpBar').innerText = `${Math.round(data.xp_percent)}%`;
+            document.getElementById('question').innerText = data.question + ' = ?';
+            const inputField = document.querySelector('input[name=answer]');
+            inputField.value = '';
+            inputField.focus();
+
+            const message = document.getElementById('message');
+            message.innerHTML = data.message;
+            message.className = data.flash ? 'flash' : '';
+
+            if (data.flash) {
+                launchConfetti();
+            }
+
+            if (data.victory) {
+                document.body.innerHTML = `
+                    <div class="container py-5">
+                        <div class="game-box text-center">
+                            <img src="images/${data.avatar}" alt="Переможний дракон" class="dragon">
+                            <h2 class="victory-banner">🏆 Ти досяг легендарного рівня!</h2>
+                            <p class="fs-4 mb-4">Твій титул: <strong>Архі-рахівник драконячого ордену</strong></p>
+                            <p>Ти здобув пошану всіх чисел і залишив слід у математичному світі.</p>
+                            <button onclick="restartGame()" class="btn btn-success mt-3">🔁 Почати заново</button>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        function restartGame() {
+            fetch('game.php', {
+                method: 'POST',
+                body: new URLSearchParams({ restart: true })
+            }).then(() => location.reload());
+        }
+
+        function launchConfetti() {
+            const container = document.getElementById('confettiContainer');
+            container.innerHTML = ''; // Очистити попередні частинки
+
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti-piece');
+
+                // Позиція по ширині
+                confetti.style.left = Math.random() * 100 + '%';
+                // Випадковий колір
+                confetti.style.backgroundColor = randomColor();
+                // Випадкове запізнення анімації
+                confetti.style.animationDelay = (Math.random() * 0.5) + 's';
+                // Випадковий нахил
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+                container.appendChild(confetti);
+            }
+
+            // Видалити конфеті після завершення анімації
+            setTimeout(() => container.innerHTML = '', 2500);
+        }
+
+        function randomColor() {
+            const colors = ['#ff0', '#0f0', '#f00', '#0ff', '#f0f', '#00f', '#ffa500', '#00ffa5'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+
+        document.getElementById('answerForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('game.php', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => updateGame(data));
+        });
+
+        fetch('game.php')
+            .then(res => res.json())
+            .then(data => updateGame(data));
+    </script>
+
+    <div class="confetti" id="confettiContainer"></div>
+</body>
+</html>
